@@ -1,0 +1,59 @@
+function HTTP_GET(lpszUrl: int, lpBuffer: int, bufferSize: int)
+    
+    DynamicLibrary wininet
+    int hInternet
+    int hFile
+    int InternetOpenA
+    int InternetOpenUrlA
+    int InternetReadFile
+    int InternetCloseHandle
+    
+    int bytesRead
+    int bytesReadPtr
+    int readSucceeded
+    int totalRead = 0
+
+    if wininet = load_dynamic_library {libraryFileName} "wininet.dll"
+    then
+        InternetCloseHandle = get_dynamic_library_procedure {procName} "InternetCloseHandle" {library} wininet
+        InternetOpenA = get_dynamic_library_procedure {procName} "InternetOpenA" {library} wininet
+        InternetOpenUrlA = get_dynamic_library_procedure {procName} "InternetOpenUrlA" {library} wininet
+        InternetReadFile = get_dynamic_library_procedure {procName} "InternetReadFile" {library} wininet
+        
+        hInternet = call_function_return {address} InternetOpenA {numArgs} 5 {pop} 0 {args} _dwFlags 0 _lpszProxyBypass "" _lpszProxy "" _dwAccessType 0 _lpszAgent "CLEO Script"
+        if not hInternet == 0
+        then
+            hFile = call_function_return {address} InternetOpenUrlA {numArgs} 6 {pop} 0 {args} _context 0 _flags 0x80800000 _headersLength 0 _headers 0 _url lpszUrl _hInternet hInternet
+            if not hFile == 0
+            then
+                bytesReadPtr = allocate_memory {size} 4
+                readSucceeded = call_function_return {address} InternetReadFile {numArgs} 4 {pop} 0 {args} _lpdwNumberOfBytesRead bytesReadPtr _dwNumberOfBytesToRead 1024 _lpBuffer lpBuffer _hFile hFile
+                bytesRead = read_memory {address} bytesReadPtr {size} 1 {vp} false
+                if readSucceeded == true
+                then
+                    while bytesRead > 0x0
+                        wait 0
+                        lpBuffer += bytesRead
+                        totalRead += bytesRead
+                        if totalRead > bufferSize
+                        then
+                            break
+                        end
+                        readSucceeded = call_function_return {address} InternetReadFile {numArgs} 4 {pop} 0 {args} _lpdwNumberOfBytesRead bytesReadPtr _dwNumberOfBytesToRead 1024 _lpBuffer lpBuffer _hFile hFile
+                        bytesRead = read_memory {address} bytesReadPtr {size} 1 {vp} false
+                        if readSucceeded == false
+                        then
+                            break
+                        end
+                    end
+                end
+                write_memory {address} lpBuffer {size} 1 {value} 0 {vp} false
+                free_memory {address} bytesReadPtr
+                call_function {address} InternetCloseHandle {numArgs} 1 {pop} 0 {args} hFile
+                call_function {address} InternetCloseHandle {numArgs} 1 {pop} 0 {args} hInternet
+            end
+        end
+        free_dynamic_library wininet
+    end
+    
+end

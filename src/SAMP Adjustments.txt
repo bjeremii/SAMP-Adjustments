@@ -1,0 +1,917 @@
+{$CLEO .cs}
+{$USE ini}
+{$USE bitwise}
+nop
+print_formatted_now {fmt} "~y~bjeremii.blogspot.com" {time} 50 {arg} 
+/* 
+    Written and compiled on Sanny Builder 4.2.0
+
+    Special thanks to
+     Everyone behind CLEO and Sanny Builder
+     Everyone behind gta-reversed
+     Everyone behind the SA-MP decompilation
+     Everyone behind mod_sa
+*/
+
+const
+    // Bitflags
+     // booleans
+      BIT_SettingsInitialized = 0
+      BIT_UpdateAvailable = 1
+      
+      BIT_StuntBonusesDisabled = 3
+      BIT_KillfeedDisabled = 4
+      BIT_ColorFixEnabled = 5
+      BIT_CinematicModeEnabled = 6
+      BIT_PreventEngineBugEnabled = 7
+      BIT_GogglesDisabled = 8
+     // keyStates
+      KEYSTATE_CinematicModePressed = 0
+    
+    // Enums
+     ERROR_Generic = 0x696969
+	 
+     // SAMP Client Versions
+     // Index-based, do not change without updating corresponding logic
+      CLIENT_DL = 0
+      CLIENT_R1 = 1
+      CLIENT_R2 = 2
+      CLIENT_R3_V0 = 3
+      CLIENT_R3_V1 = 4
+      CLIENT_R4 = 5
+      CLIENT_R4_V2 = 6
+      CLIENT_R5_V1 = 7
+      CLIENT_Unknown = 8
+      
+    FUNC_memcpy = 0x4F2F40
+end
+
+int booleans = 0
+int keyStates = 0
+int startupDelay = 1000
+int cinematicModeKey = 0
+
+int temp0
+int temp1
+int temp2
+int temp3
+int temp4
+
+if isPlayingSAMP()
+then
+else
+    terminate_this_script
+end
+
+temp0 = GetCLEOVersion()
+if temp0 < 0x04040000 // CLEO 4.4
+then
+    TIMERB = 0
+    while TIMERB < 10000
+        wait 0
+        temp0 = 11000 - TIMERB
+        temp0 /= 1000
+        print_formatted_now {fmt} "~y~SAMP Adjustments~s~ requires ~y~CLEO v4.4~s~ or above!~n~The mod will shut down... (~y~ %i~w~s )" {time} 50 {arg} temp0
+    end
+    terminate_this_script
+end
+
+if not startupDelay = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Startup" {key} "Delay"
+then
+    startupDelay = 1000
+end
+if startupDelay < 0
+then
+    startupDelay = 1000
+end
+
+repeat
+    wait 0
+until TIMERA > startupDelay
+
+// Check For Updates
+if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Startup" {key} "CheckForUpdates"
+then
+    if temp0 == 1
+    then
+        if isUpdateAvailable()
+        then
+            set_local_var_bit_const {number} booleans {n} BIT_UpdateAvailable
+            TIMERB = 0
+        end
+    end
+end
+
+// Save Cinematic Mode Values
+temp0 = get_label_pointer @SavedValues
+temp1 = GetSAMPAddress({offsets} {DL} 0x754F3, {R1} 0x71473, {R2} 0x71513, {R3_0} 0x75363, {R3_1} 0x75363, {R4} 0x75AA3, {R4_2} 0x75AD2, {R5_1} 0x75A72)
+call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 5 _src temp1 _dest temp0
+temp0 += 0x5
+temp1 = GetSAMPAddress({offsets} {DL} 0x75502, {R1} 0x71482, {R2} 0x71522, {R3_0} 0x75372, {R3_1} 0x75372, {R4} 0x75AB2, {R4_2} 0x75AE1, {R5_1} 0x75A81)
+call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 5 _src temp1 _dest temp0
+temp0 += 0x5
+temp1 = GetSAMPAddress({offsets} {DL} 0x754D8, {R1} 0x71458, {R2} 0x714F8, {R3_0} 0x75348, {R3_1} 0x75348, {R4} 0x75A88, {R4_2} 0x75AB7, {R5_1} 0x75A57)
+call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 5 _src temp1 _dest temp0
+
+while true
+    wait 0
+    //////////////
+    // Read ini //
+    //////////////
+    if test_cheat {input} "SAMP"
+    then
+        print_formatted_now {fmt} "Reloading ~y~SAMP Adjustments.ini" {time} 2000
+        clear_local_var_bit_const {number} booleans {n} BIT_SettingsInitialized
+    end
+    if not is_local_var_bit_set_const {number} booleans {n} BIT_SettingsInitialized
+    then
+        set_local_var_bit_const {number} booleans {n} BIT_SettingsInitialized
+        //////////////////
+        // Cut Features //
+        //////////////////
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CutFeatures" {key} "EnableVegetation"
+        then
+            switch temp0
+                case 0 // false
+                    write_memory {address} 0x53C159 {size} 5 {value} 0x90 {vp} true
+                case 1 // true
+                    WriteBytes({address} 0x53C159, {size} 5, {bytes} 0xE8, 0x42, 0x0E, 0x0A, 0x00)
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CutFeatures" {key} "EnableSun"
+        then
+            switch temp0
+                case 0 // false
+                    write_memory {address} 0x53C136 {size} 5 {value} 0x90 {vp} true
+                case 1 // true
+                    WriteBytes({address} 0x53C136, {size} 5, {bytes} 0xE8, 0x65, 0x04, 0x1C, 0x00)
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CutFeatures" {key} "EnableSpeedBlur"
+        then
+            switch temp0
+                case 0 // false
+                    write_memory {address} 0x7030A0 {size} 1 {value} 0xC3 {vp} true
+                    write_memory {address} 0x704E8A {size} 5 {value} 0x90 {vp} true
+                case 1 // true
+                    write_memory {address} 0x7030A0 {size} 1 {value} 0x83 {vp} true
+                    WriteBytes({address} 0x704E8A, {size} 5, {bytes} 0xE8, 0x11, 0xE2, 0xFF, 0xFF)
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CutFeatures" {key} "EnableFade"
+        then
+            switch temp0
+                case 0 // false
+                    WriteBytes({address} 0x50AC20, {size} 3, {bytes} 0xC2, 0x08, 0x00)
+                    WriteSAMPBytes({offsets} {DL} 0x3D12, {R1} 0x3C77, {R2} 0x3C87, {R3_0} 0x3C77, {R3_1} 0x3C77, {R4} 0x3DE3, {R4_2} 0x3DF3, {R5_1} 0x3DF3, {size} 7, {bytes} 0xC6, 0x05, 0x20, 0xAC, 0x50, 0x00, 0xC2)
+                    WriteSAMPBytes({offsets} {DL} 0x3D19, {R1} 0x3C7E, {R2} 0x3C8E, {R3_0} 0x3C7E, {R3_1} 0x3C7E, {R4} 0x3DEA, {R4_2} 0x3DFA, {R5_1} 0x3DFA, {size} 7, {bytes} 0xC6, 0x05, 0x21, 0xAC, 0x50, 0x00, 0x08)
+                    WriteSAMPBytes({offsets} {DL} 0x3D20, {R1} 0x3C85, {R2} 0x3C95, {R3_0} 0x3C85, {R3_1} 0x3C85, {R4} 0x3DF1, {R4_2} 0x3E01, {R5_1} 0x3E01, {size} 6, {bytes} 0x88, 0x1D, 0x22, 0xAC, 0x50, 0x00)
+                case 1 // true
+                    WriteBytes({address} 0x50AC20, {size} 3, {bytes} 0xE9, 0x48, 0x65)
+                    WriteSAMPMemory({offsets} {DL} 0x3D12, {R1} 0x3C77, {R2} 0x3C87, {R3_0} 0x3C77, {R3_1} 0x3C77, {R4} 0x3DE3, {R4_2} 0x3DF3, {R5_1} 0x3DF3, {size} 7, {value} 0x90)
+                    WriteSAMPMemory({offsets} {DL} 0x3D19, {R1} 0x3C7E, {R2} 0x3C8E, {R3_0} 0x3C7E, {R3_1} 0x3C7E, {R4} 0x3DEA, {R4_2} 0x3DFA, {R5_1} 0x3DFA, {size} 7, {value} 0x90)
+                    WriteSAMPMemory({offsets} {DL} 0x3D20, {R1} 0x3C85, {R2} 0x3C95, {R3_0} 0x3C85, {R3_1} 0x3C85, {R4} 0x3DF1, {R4_2} 0x3E01, {R5_1} 0x3E01, {size} 6, {value} 0x90)
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CutFeatures" {key} "EnableWasted"
+        then
+            switch temp0
+                case 0 // false
+                    write_memory {address} 0x56E5AD {size} 5 {value} 0x90 {vp} true
+                case 1 // true
+                    WriteBytes({address} 0x56E5AD, {size} 5, {bytes} 0xE8, 0xFE, 0x0C, 0x13, 0x00)
+            end
+        end
+        //////////////
+        // Gameplay //
+        //////////////
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Gameplay" {key} "FrameDelay"
+        then
+            if temp0 >= 0
+            then
+                write_memory {address} 0x53E94C {size} 1 {value} temp0 {vp} true
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Gameplay" {key} "NoTrainCamShake"
+        then
+             switch temp0
+                case 0 // false
+                    WriteBytes({address} 0x50A9FD, {size} 7, {bytes} 0xD9, 0x84, 0x08, 0x10, 0x03, 0x00, 0x00)
+                case 1 // true
+                    write_memory {address} 0x50A9FD {size} 7 {value} 0x90 {vp} true
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Gameplay" {key} "PreventEngineBug"
+        then
+            switch temp0
+                case 0 // false
+                    clear_local_var_bit_const {number} booleans {n} BIT_PreventEngineBugEnabled
+                    WriteBytes({address} 0x503910, {size} 3, {bytes} 0x53, 0x56, 0x57)
+                case 1 // true
+                    set_local_var_bit_const {number} booleans {n} BIT_PreventEngineBugEnabled
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Gameplay" {key} "DisableStuntBonuses"
+        then
+            switch temp0
+                case 0 // false
+                    if is_local_var_bit_set_const {number} booleans {n} BIT_StuntBonusesDisabled
+                    then
+                        clear_local_var_bit_const {number} booleans {n} BIT_StuntBonusesDisabled
+                        temp0 = read_memory {address} 0xC1B340 {size} 4 {vp} true
+                        temp1 = get_label_pointer @SavedPointers
+                        
+                        temp3 = temp0 + 0x5AD0 // Distance M
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x7510 // Distance ft
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0xC28 // Insane
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x5AD8 // Double Insane
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x6260 // Triple Insane
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x6128 // Quadruple Insane
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x7248 // Two Wheels M
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x2380 // Two Wheels ft
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x7840 // Stoppie M
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x1DB0 // Stoppie ft
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x2198 // Wheelie M
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x2E80 // Wheelie ft
+                        temp2 = read_memory {address} temp1 {size} 4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                                                      
+                        // enable stunt bonus money
+                        //
+                        // todo:
+                        //  find a better way to do this, there's a chance this affects any script that adds money
+                        write_memory {address} 0x466B3C {size} 2 {value} 0x0701 {vp} true
+                        WriteBytes({address} 0x447094, {size} 3, {bytes} 0x8D, 0x04, 0x85)
+                        WriteBytes({address} 0x4660E7, {size} 7, {bytes} 0x0F, 0xAF, 0x15, 0x78, 0x3C, 0xA4, 0x00)
+                    end
+                case 1 // true
+                    if not is_local_var_bit_set_const {number} booleans {n} BIT_StuntBonusesDisabled
+                    then
+                        set_local_var_bit_const {number} booleans {n} BIT_StuntBonusesDisabled
+                        
+                        temp0 = read_memory {address} 0xC1B340 {size} 4 {vp} true
+                        temp1 = get_label_pointer @SavedPointers
+                        temp2 = get_label_pointer @Empty
+                        
+                        temp3 = temp0 + 0x5AD0 // Distance M
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x7510 // Distance ft
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0xC28 // Insane
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x5AD8 // Double Insane
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x6260 // Triple Insane
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x6128 // Quadruple Insane
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x7248 // Two Wheels M
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x2380 // Two Wheels ft
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x7840 // Stoppie M
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x1DB0 // Stoppie ft
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        temp1 += 0x4
+                        
+                        temp3 = temp0 + 0x2198 // Wheelie M
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        
+                        temp1 += 0x4
+                        temp3 = temp0 + 0x2E80 // Wheelie ft
+                        temp4 = read_memory {address} temp3 {size} 4 {vp} true
+                        write_memory {address} temp1 {size} 4 {value} temp4 {vp} true
+                        write_memory {address} temp3 {size} 4 {value} temp2 {vp} true
+                        
+                        // disable stunt bonus money
+                        //
+                        // todo:
+                        //  find a better way to do this, there's a chance this affects any script that adds money
+                        write_memory {address} 0x466B3C {size} 2 {value} 0x9090 {vp} true
+                        write_memory {address} 0x4660E7 {size} 7 {value} 0x90 {vp} true
+                    end
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Gameplay" {key} "DisabledGoggles"
+        then
+            switch temp0
+                case 0 // false
+                    write_memory {address} 0x701120 {size} 1 {value} 0x8A {vp} true
+                    write_memory {address} 0x701140 {size} 1 {value} 0x8A {vp} true
+                    clear_local_var_bit_const {number} booleans {n} BIT_GogglesDisabled
+                case 1 // true
+                    write_memory {address} 0x701120 {size} 1 {value} 0xC3 {vp} true
+                    write_memory {address} 0x701140 {size} 1 {value} 0xC3 {vp} true
+                    set_local_var_bit_const {number} booleans {n} BIT_GogglesDisabled
+            end
+        end
+        //////////
+        // SAMP //
+        //////////
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "SAMP" {key} "AutoHideKillfeed"
+        then
+            if temp0 == 1 // true
+            then
+                if TIMERA < 10000
+                then
+                    temp0 = ReadSAMPMemory({offsets} {DL} 0x2ACA18, {R1} 0x21A0EC, {R2} 0x21A0F4, {R3_0} 0x26E8D0, {R3_1} 0x26E8D0, {R4} 0x26EA00, {R4_2} 0x26EA00, {R5_1} 0x26EB88, {size} 4)
+                    if not temp0 == ERROR_Generic
+                    then
+                        write_memory {address} temp0 {size} 1 {value} false {vp} true
+                    end
+                end
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "SAMP" {key} "DisableKillfeed"
+        then
+            switch temp0
+                case 0 // false
+                    if is_local_var_bit_set_const {number} booleans {n} BIT_KillfeedDisabled
+                    then
+                        clear_local_var_bit_const {number} booleans {n} BIT_KillfeedDisabled
+                        WriteSAMPMemory({offsets} {DL} 0x60E66, {R1} 0x5D8D6, {R2} 0x5D9A6, {R3_0} 0x60C76, {R3_1} 0x60C76, {R4} 0x613A6, {R4_2} 0x613E6, {R5_1} 0x613E6, {size} 2, {value} 0x0889)
+                        temp0 = ReadSAMPMemory({offsets} {DL} 0x2ACA18, {R1} 0x21A0EC, {R2} 0x21A0F4, {R3_0} 0x26E8D0, {R3_1} 0x26E8D0, {R4} 0x26EA00, {R4_2} 0x26EA00, {R5_1} 0x26EB88, {size} 4)
+                        write_memory {address} temp0 {size} 1 {value} true {vp} true
+                    end
+                case 1 // true
+                    if not is_local_var_bit_set_const {number} booleans {n} BIT_KillfeedDisabled
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x60E66, {R1} 0x5D8D6, {R2} 0x5D9A6, {R3_0} 0x60C76, {R3_1} 0x60C76, {R4} 0x613A6, {R4_2} 0x613E6, {R5_1} 0x613E6, {size} 2, {value} 0x9090)
+                        temp0 = ReadSAMPMemory({offsets} {DL} 0x2ACA18, {R1} 0x21A0EC, {R2} 0x21A0F4, {R3_0} 0x26E8D0, {R3_1} 0x26E8D0, {R4} 0x26EA00, {R4_2} 0x26EA00, {R5_1} 0x26EB88, {size} 4)
+                        if not temp0 == ERROR_Generic
+                        then
+                            set_local_var_bit_const {number} booleans {n} BIT_KillfeedDisabled
+                            write_memory {address} temp0 {size} 1 {value} false {vp} true
+                        end
+                    end
+            end
+        end
+        if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "SAMP" {key} "ImVehFtColorFix"
+        then
+            switch temp0
+                case 0 // false
+                    if is_local_var_bit_set_const {number} booleans {n} BIT_ColorFixEnabled
+                    then
+                        clear_local_var_bit_const {number} booleans {n} BIT_ColorFixEnabled
+                        WriteBytes({address} 0x447090, {size} 4, {bytes} 0x8B, 0x44, 0x24, 0x02)
+                        WriteBytes({address} 0x447094, {size} 3, {bytes} 0x8D, 0x04, 0x85)
+                        WriteBytes({address} 0x447097, {size} 4, {bytes} 0x80, 0xE4, 0xB4, 0x00)
+                        write_memory {address} 0x44709B {size} 1 {value} 0xC3 {vp} true
+                        write_memory {address} 0x44709C {size} 1 {value} 0x90 {vp} true
+                    end
+                case 1 // true
+                    if not is_local_var_bit_set_const {number} booleans {n} BIT_ColorFixEnabled
+                    then
+                        temp0 = GetSAMPAddress({offsets} {DL} 0x2A8E70, {R1} 0x215AC8, {R2} 0x215AD0, {R3_0} 0x26AD28, {R3_1} 0x26AD28, {R4} 0x26AE50, {R4_2} 0x26AE50, {R5_1} 0x26AFD8)
+                        if not temp0 == ERROR_Generic
+                        then
+                            set_local_var_bit_const {number} booleans {n} BIT_ColorFixEnabled
+                            WriteBytes({address} 0x447090, {size} 5, {bytes} 0x0F, 0xB6, 0x44, 0x24, 0x04)
+                            WriteBytes({address} 0x447095, {size} 3, {bytes} 0x8D, 0x04, 0x85)
+                            write_memory {address} 0x447098 {size} 4 {value} temp0 {vp} true
+                            write_memory {address} 0x44709C {size} 1 {value} 0xC3 {vp} true
+                        end
+                    end
+            end
+        end
+        ////////////////////
+        // CINEMATIC MODE //
+        ////////////////////
+        if not cinematicModeKey = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "ToggleKey"
+        then
+            cinematicModeKey = 0
+        end
+    end
+    if and
+        not cinematicModeKey == 0
+        is_key_pressed {keyCode} cinematicModeKey
+    then
+        if not is_local_var_bit_set_const {number} keyStates {n} KEYSTATE_CinematicModePressed
+        then
+            set_local_var_bit_const {number} keyStates {n} KEYSTATE_CinematicModePressed
+            if not is_local_var_bit_set_const {number} booleans {n} BIT_CinematicModeEnabled
+            then
+                set_local_var_bit_const {number} booleans {n} BIT_CinematicModeEnabled
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideScriptUI"
+                then
+                    if temp0 == 1 // true
+                    then
+                        write_memory {address} 0x58FCC2 {size} 2 {value} 0x36EB {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideRadar"
+                then
+                    if temp0 == 1 // true
+                    then
+                        write_memory {address} 0x58A330 {size} 1 {value} 0xC3 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideHUD"
+                then
+                    if temp0 == 1 // true
+                    then
+                        write_memory {address} 0x58EAF0 {size} 1 {value} 0xC3 {vp} true
+                        write_memory {address} 0x58D9A0 {size} 1 {value} 0xC3 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideBigMessages"
+                then
+                    if temp0 == 1 // true
+                    then
+                        write_memory {address} 0x588FC0 {size} 1 {value} 0xC3 {vp} true
+                        write_memory {address} 0xBAAE40 {size} 1 {value} 0x00 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideTextdraws"
+                then
+                    if temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0xB3080, {R1} 0xACD90, {R2} 0xACF60, {R3_0} 0xB2BB0, {R3_1} 0xB2BF0, {R4} 0xB3490, {R4_2} 0xB34C0, {R5_1} 0xB3480, {size} 1, {value} 0xC3)
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideNametags"
+                then
+                    if temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x74DC0, {R1} 0x70D40, {R2} 0x70DE0, {R3_0} 0x74C30, {R3_1} 0x74C30, {R4} 0x75360, {R4_2} 0x75390, {R5_1} 0x75330, {size} 1, {value} 0xC3)
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideHealthBars"
+                then
+                    if temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x73CB0, {R1} 0x6FC30, {R2} 0x6FCD0, {R3_0} 0x73B20, {R3_1} 0x73B20, {R4} 0x74240, {R4_2} 0x74270, {R5_1} 0x74210, {size} 1, {value} 0xC3)
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideLabels"
+                then
+                    if temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x754F3, {R1} 0x71473, {R2} 0x71513, {R3_0} 0x75363, {R3_1} 0x75363, {R4} 0x75AA3, {R4_2} 0x75AD2, {R5_1} 0x75A72, {size} 5, {value} 0x90)
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideChat"
+                then
+                    if temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x75502, {R1} 0x71482, {R2} 0x71522, {R3_0} 0x75372, {R3_1} 0x75372, {R4} 0x75AB2, {R4_2} 0x75AE1, {R5_1} 0x75A81, {size} 5, {value} 0x90)
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideChatBubbles"
+                then
+                    if temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x754D8, {R1} 0x71458, {R2} 0x714F8, {R3_0} 0x75348, {R3_1} 0x75348, {R4} 0x75A88, {R4_2} 0x75AB7, {R5_1} 0x75A57, {size} 5, {value} 0x90)
+                    end
+                end
+            else
+                clear_local_var_bit_const {number} booleans {n} BIT_CinematicModeEnabled
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideScriptUI"
+                then
+                     if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        write_memory {address} 0x58FCC2 {size} 2 {value} 0xC084 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideNametags"
+                then
+                    if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        write_memory {address} 0x58A330 {size} 1 {value} 0xA1 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideHUD"
+                then
+                    if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        write_memory {address} 0x58EAF0 {size} 1 {value} 0x81 {vp} true
+                        write_memory {address} 0x58D9A0 {size} 1 {value} 0x83 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideBigMessages"
+                then
+                    if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        write_memory {address} 0x588FC0 {size} 1 {value} 0x66 {vp} true
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideTextdraws"
+                then
+                    if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0xB3080, {R1} 0xACD90, {R2} 0xACF60, {R3_0} 0xB2BB0, {R3_1} 0xB2BF0, {R4} 0xB3490, {R4_2} 0xB34C0, {R5_1} 0xB3480, {size} 1, {value} 0x83) // textdraws
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideNametags"
+                then
+                    if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x74DC0, {R1} 0x70D40, {R2} 0x70DE0, {R3_0} 0x74C30, {R3_1} 0x74C30, {R4} 0x75360, {R4_2} 0x75390, {R5_1} 0x75330, {size} 1, {value} 0x55) // nametags
+                    end
+                end
+                if temp0 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideHealthBars"
+                then
+                    if or
+                        temp0 == 0 // false
+                        temp0 == 1 // true
+                    then
+                        WriteSAMPMemory({offsets} {DL} 0x73CB0, {R1} 0x6FC30, {R2} 0x6FCD0, {R3_0} 0x73B20, {R3_1} 0x73B20, {R4} 0x74240, {R4_2} 0x74270, {R5_1} 0x74210, {size} 1, {value} 0x55) // health bars
+                    end
+                end
+                
+                temp0 = get_label_pointer @SavedValues
+                if temp2 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideLabels"
+                then
+                    if or
+                        temp2 == 0 // false
+                        temp2 == 1 // true
+                    then
+                        temp1 = GetSAMPAddress({offsets} {DL} 0x754F3, {R1} 0x71473, {R2} 0x71513, {R3_0} 0x75363, {R3_1} 0x75363, {R4} 0x75AA3, {R4_2} 0x75AD2, {R5_1} 0x75A72)
+                        call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 5 _src temp0 _dest temp1
+                    end
+                end
+                temp0 += 0x5
+                if temp2 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideChat"
+                then
+                    if or
+                        temp2 == 0 // false
+                        temp2 == 1 // true
+                    then
+                        temp1 = GetSAMPAddress({offsets} {DL} 0x75502, {R1} 0x71482, {R2} 0x71522, {R3_0} 0x75372, {R3_1} 0x75372, {R4} 0x75AB2, {R4_2} 0x75AE1, {R5_1} 0x75A81)
+                        call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 5 _src temp0 _dest temp1
+                    end
+                end
+                temp0 += 0x5
+                if temp2 = read_int_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "CinematicMode" {key} "HideChatBubbles"
+                then
+                    if or
+                        temp2 == 0 // false
+                        temp2 == 1 // true
+                    then
+                        temp1 = GetSAMPAddress({offsets} {DL} 0x754D8, {R1} 0x71458, {R2} 0x714F8, {R3_0} 0x75348, {R3_1} 0x75348, {R4} 0x75A88, {R4_2} 0x75AB7, {R5_1} 0x75A57)
+                        call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 5 _src temp0 _dest temp1
+                    end
+                end
+            end
+        end
+    else
+        if is_local_var_bit_set_const {number} keyStates {n} KEYSTATE_CinematicModePressed
+        then
+            clear_local_var_bit_const {number} keyStates {n} KEYSTATE_CinematicModePressed
+        end
+    end
+    if and
+        is_local_var_bit_set_const {number} booleans {n} BIT_PreventEngineBugEnabled
+        does_char_exist {handle} $scplayer
+    then
+        if or
+            is_char_in_any_car $scplayer
+            is_char_getting_in_to_a_car $scplayer
+        then
+            WriteBytes({address} 0x503910, {size} 3, {bytes} 0xC2, 0x08, 0x00)
+        else
+            WriteBytes({address} 0x503910, {size} 3, {bytes} 0x53, 0x56, 0x57)
+        end
+    end
+    if is_local_var_bit_set_const {number} booleans {n} BIT_GogglesDisabled
+    then
+        write_memory {address} 0xC402B8 {size} 2 {value} 0 {vp} true
+    end
+    
+    // Update
+    if and
+        is_local_var_bit_set_const {number} booleans {n} BIT_UpdateAvailable
+        TIMERB < 10000
+    then
+        temp0 = 11000 - TIMERB
+        temp0 /= 1000
+        print_formatted_now {fmt} "An update is available for ~y~SAMP Adjustments~s~~n~Find out more at ~y~https://bjeremii.blogspot.com~s~~n~(~y~ %i~w~s )" {time} 50 {arg} temp0
+    end
+end
+
+:SavedPointers
+hex
+    00 00 00 00 // Distance M       +0
+    00 00 00 00 // Distance ft      +4
+    00 00 00 00 // Insane           +8
+    00 00 00 00 // Double Insane    +12
+    00 00 00 00 // Triple Insane    +16
+    00 00 00 00 // Quadruple Insane +20
+    00 00 00 00 // Two Wheels M     +24
+    00 00 00 00 // Two Wheels ft    +28
+    00 00 00 00 // Stoppie M        +32
+    00 00 00 00 // Stoppie ft       +36
+    00 00 00 00 // Wheelie M        +40
+    00 00 00 00 // Wheelie ft       +44
+end
+
+:SavedValues
+hex
+    00 00 00 00 00 // labels        +0
+    00 00 00 00 00 // chat          +4
+    00 00 00 00 00 // chat bubbles  +8
+end
+
+:Empty
+hex
+    00 00 00 00
+end
+
+function isUpdateAvailable(): logical
+
+    int updateIsAvailable = false
+    int url = allocate_memory {size} 260 // url
+    int buffer = allocate_memory {size} 5121 // result from api
+    int savedsha = allocate_memory {size} 41 // saved sha
+    int sha = allocate_memory {size} 41 // sha
+    int offset
+    int addr
+    int savedBlock
+    int currentBlock
+    
+    string_format {result} url {format} "https://api.github.com/repos/bjeremii/SAMP-Adjustments/commits?path=VERSION&page=1&per_page=1"
+    write_memory {address} sha {size} 41 value 0x00 {vp} false
+    write_memory {address} buffer {size} 5121 value 0x00 {vp} false
+    
+    HTTP_GET({lpszUrl} url, {lpBuffer} buffer, {bufferSize} 5120)
+    addr = buffer + 9
+    call_function FUNC_memcpy {num_args} 3 {pop} 3 {args} _size 40 _src addr _dest sha
+    
+    if savedsha = read_string_from_ini_file {path} "cleo\SAMP Adjustments.ini" {section} "Version" {key} "sha"
+    then
+        // strcmp
+        for offset = 0 to 36 step 4
+            addr = savedsha + offset
+            savedBlock = read_memory {address} addr {size} 4 {vp} false
+            addr = sha + offset
+            currentBlock = read_memory {address} addr {size} 4 {vp} false
+            if savedBlock <> currentBlock 
+            then
+                updateIsAvailable = true
+                break
+            end
+        end
+    else
+        updateIsAvailable = true
+    end
+    
+    free_memory {address} url
+    free_memory {address} buffer
+    free_memory {address} sha
+    free_memory {address} savedsha
+    
+    return updateIsAvailable == true
+    
+end
+
+function isPlayingSAMP(): logical
+
+    DynamicLibrary kernel32
+    DynamicLibrary sampdll
+    int GetModuleHandleA
+    
+    if kernel32 = load_dynamic_library {fileName} "kernel32.dll"
+    then
+        GetModuleHandleA = get_dynamic_library_procedure {procName} "GetModuleHandleA" {library} kernel32
+        sampdll = call_function_return {address} GetModuleHandleA {numParams} 1 {pop} 0 {funcParams} "samp.dll"
+        free_dynamic_library kernel32
+        return sampdll <> 0
+    end
+    return false
+    
+end
+
+function GetCLEOVersion(): int
+    
+    DynamicLibrary cleo
+    int _CLEO_GetVersion
+    int version = 0
+    
+    if cleo = load_dynamic_library {libraryFileName} "CLEO.asi"
+    then
+        if _CLEO_GetVersion = get_dynamic_library_procedure {procName} "_CLEO_GetVersion@0" {library} cleo
+        then
+            version = call_function_return {address} _CLEO_GetVersion {numParams} 0 {pop} 0
+        end
+        free_dynamic_library cleo
+    end
+    cleo_return {numRet} 1 {retParams} version
+
+end
+
+function GetSAMPVersion(): int
+    
+    DynamicLibrary sampdll
+    int version = CLIENT_Unknown
+    int addr
+    int result
+    
+    if sampdll = load_dynamic_library {libraryFileName} "samp.dll"
+    then
+        addr = sampdll + 0x170
+        free_dynamic_library sampdll
+        result = read_memory {address} addr {size} 4 {vp} true
+        switch result
+            case 0x002BE000
+                version = CLIENT_DL
+            case 0x00330000
+                version = CLIENT_R1
+            case 0x00335000
+                version = CLIENT_R2
+            case 0x0012BF0F
+                version = CLIENT_R3_V0
+            case 0x001349B1
+                version = CLIENT_R3_V1
+            case 0x00129DD3
+                version = CLIENT_R4
+            case 0x0012886F
+                version = CLIENT_R4_V2
+            case 0x0012BA34
+                version = CLIENT_R5_V1
+        end
+    end
+    cleo_return {numRet} 1 {retParams} version
+    
+end
+
+function GetSAMPAddress(offset: int[8]): int
+    
+    DynamicLibrary sampdll
+    int version = GetSAMPVersion()
+    int result = ERROR_Generic
+    
+    if Version <> CLIENT_Unknown
+    then
+        if sampdll = load_dynamic_library {libraryFileName} "samp.dll"
+        then
+            if offset[version] <> 0x0
+            then
+                result = sampdll + offset[version] // samp.dll + offset
+            else
+                print_formatted_now {fmt} "Unsupported SAMP version~n~One of the features does not support this version" {time} 1500 {arg} 
+            end
+            free_dynamic_library sampdll
+        end
+    else
+        print_formatted_now {fmt} "Unknown SAMP version~n~Features related to SAMP are not available" {time} 1500 {arg}
+    end
+    cleo_return {numRet} 1 {retParams} result
+    
+end
+
+function WriteSAMPMemory(offset: int[8], size: int, value: int)
+    
+    int address = GetSAMPAddress(...offset)
+    
+    if address <> ERROR_Generic
+    then
+        write_memory {address} address {size} size {value} value {vp} true
+    end
+    
+end
+
+function ReadSAMPMemory(offset: int[8], size: int): int
+    
+    int address = GetSAMPAddress(...offset)
+    int result = ERROR_Generic
+    
+    if address <> ERROR_Generic
+    then
+        result = read_memory {address} address {size} size {vp} true
+    end
+    cleo_return {numRet} 1 {retParams} result
+    
+end
+
+function WriteSAMPBytes(offset: int[8], size: int, ...bytes: int[21])
+    
+    int count
+    size--
+    
+    for count = 0 to size
+        WriteSAMPMemory({offsets} ...offset, {size} 1, {value} bytes[count])
+        offset[0]++
+        offset[1]++
+        offset[2]++
+        offset[3]++
+        offset[4]++
+        offset[5]++
+        offset[6]++
+        offset[7]++
+    end
+    
+end
+
+function WriteBytes(address: int, size: int, ...bytes: int[28])
+
+    int count
+    size--
+    
+    for count = 0 to size 
+        write_memory {address} address {size} 1 {value} bytes[count] {vp} true
+        address++
+    end
+    
+end
+
+{$INCLUDE_ONCE includes/http_get.txt}
+
+terminate_this_script
+
